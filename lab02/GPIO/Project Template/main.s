@@ -98,46 +98,85 @@ __main	PROC
 	ORR r1, r1, #(0x1<<4)
 	STR r1, [r0, #GPIO_MODER]
 
+	; turn red on
 	LDR r1, [r0, #GPIO_ODR]
 	ORR r1, r1, #(1<<2)
 	STR r1, [r0, #GPIO_ODR]
 	
 	
 	
-	; Enable the clock to GPIO Port E	
-	LDR r0, =RCC_BASE
-	LDR r1, [r0, #RCC_AHB2ENR]
-	ORR r1, r1, #RCC_AHB2ENR_GPIOEEN
-	STR r1, [r0, #RCC_AHB2ENR]
+	; Enable the clock to GPIO Port E	- green
+	LDR r2, =RCC_BASE
+	LDR r3, [r2, #RCC_AHB2ENR]
+	ORR r3, r3, #RCC_AHB2ENR_GPIOEEN
+	STR r3, [r2, #RCC_AHB2ENR]
 
 	; MODE: 00: Input mode, 01: General purpose output mode
 	;       10: Alternate function mode, 11: Analog mode (reset state)
-	LDR r0, =GPIOE_BASE
-	LDR r1, [r0, #GPIO_MODER]
-	BIC r1, r1, #(0x3<<16)
-	ORR r1, r1, #(0x1<<16)  	; 16 = length of 2 * pin 8 
-	STR r1, [r0, #GPIO_MODER]
-
-	LDR r1, [r0, #GPIO_ODR]
-	ORR r1, r1, #(1<<8)
-	STR r1, [r0, #GPIO_ODR]
+	LDR r2, =GPIOE_BASE
+	LDR r3, [r2, #GPIO_MODER]
+	BIC r3, r3, #(0x3<<16)
+	ORR r3, r3, #(0x1<<16)  	; 16 = length of 2 * pin 8 
+	STR r3, [r2, #GPIO_MODER]
 	
+	; load but don't turn on
+	LDR r3, [r2, #GPIO_ODR]
+	;ORR r3, r3, #(1<<8)
+	;STR r3, [r2, #GPIO_ODR]
 	
 	
 	; Enable the clock to GPIO Port A - joystick
-	LDR r0, =RCC_BASE
-	LDR r1, [r0, #RCC_AHB2ENR]
+	LDR r4, =RCC_BASE
+	LDR r1, [r4, #RCC_AHB2ENR]
 	ORR r1, r1, #RCC_AHB2ENR_GPIOAEN
-	STR r1, [r0, #RCC_AHB2ENR]
+	STR r1, [r4, #RCC_AHB2ENR]
 	
 	; MODE: 00: Input mode, 01: General purpose output mode
 	;       10: Alternate function mode, 11: Analog mode (reset state)
-	LDR r0, =GPIOA_BASE
-	LDR r1, [r0, #GPIO_MODER]
-	BIC r1, r1, #(0x3<<16)
-	ORR r1, r1, #(0x1<<16)  	; 16 = length of 2 * pin 8 
-	STR r1, [r0, #GPIO_MODER]
-
+	LDR r4, =GPIOA_BASE
+	LDR r5, [r4, #GPIO_MODER]
+	BIC r5, r5, #(0x3)		; 0 = length of 2 pin 0
+	ORR r5, r5, #(0x0)  	; set to input mode
+	STR r5, [r4, #GPIO_MODER]
+	
+	LDR r5, [r4, #GPIO_IDR]
+	
+	; register to hold previous state, set to 0 initially
+	MOV r6, #(0x0)
+	
+	; register to hold toggle state, set to 0 initially
+	MOV r7, #(0x0)
+	
+	
+	
+loop LDR r5, [r4, #GPIO_IDR] ; get input value from joystick
+	
+	; set toggle bit
+	EOR r6, #1
+	AND r7, r5, r6
+	
+	
+	; set value for red led
+	LSL r8, r7, #(2)
+	
+	LDR r1, [r0, #GPIO_ODR]
+	EOR r1, r8
+	STR r1, [r0, #GPIO_ODR]
+	
+	
+	; set value for green led
+	LSL r9, r7, #(8)
+	
+	LDR r3, [r2, #GPIO_ODR]
+	EOR r3, r9
+	STR r3, [r2, #GPIO_ODR]
+	
+	
+	; update prev
+	MOV r6, r5
+	
+	B loop
+	
 	
   
 stop 	B 		stop     		; dead loop & program hangs here
